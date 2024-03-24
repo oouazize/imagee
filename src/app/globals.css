@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.flex-center {
+	@apply flex justify-center items-center;
+}
+
+.flex-between {
+	@apply flex justify-between items-center;
+}
+
+.flex-around {
+	@apply flex justify-around items-center;
+}
+
+:root {
+	@apply relative mx-auto my-0 max-w-[1920px] scroll-smooth;
+}
+
+*,
+*:before,
+*:after {
+	box-sizing: border-box;
+}
+
+body {
+	@apply text-black p-0 m-0 bg-body overflow-x-hidden;
+}
+
+h1 {
+	font-size: clamp(1.25rem, 5vmin, 3rem);
+	@apply font-bold;
+}
+
+h4 {
+	font-size: clamp(0.75rem, 3.25vmin, 1.25rem);
+	@apply text-slate-700 font-light;
+}
+
+img {
+	@apply select-none object-cover;
+}
