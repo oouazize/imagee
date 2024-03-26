@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { FaHeart } from "react-icons/fa";
 import { CiHeart } from "react-icons/ci";
@@ -13,75 +13,34 @@ import {
 	PaginationPrevious,
 } from "@/src/components/ui/pagination";
 import useFetch from "../lib/useFetch";
-import { updateFavorite, getAuthenticatedUser, isFavorite } from "../lib/utils";
-import db from "../lib/db";
+import { getAuthenticatedUser, updateFavorite } from "../lib/utils";
 import { useRouter } from "next/navigation";
 import LogOut from "./logout";
-import fetch from "node-fetch";
+import useFavorite from "../lib/useFavorite";
 
 export default function list() {
 	const route = useRouter();
 	const [currentPage, setCurrentPage] = useState(1);
-	const [postsPerPage, setPostsPerPage] = useState(10);
+	const postsPerPage = useRef(10);
 	const [authenticatedUser, setAuthenticatedUser] = useState("");
 
 	useEffect(() => {
 		const fetchAuthenticatedUser = async () => {
 			const user = await getAuthenticatedUser();
-			if (!user) route.push("/login");
+			if (user === null) route.push("/login");
 			else setAuthenticatedUser(user.username);
 		};
 
 		fetchAuthenticatedUser();
 	}, []);
 
-	useEffect(() => {
-		const storesPhotos = async () => {
-			try {
-				// Try to get the flag from the database
-				await db.get("photosStored");
-			} catch (error) {
-				const url = `https://api.unsplash.com/photos?client_id=${process.env.NEXT_PUBLIC_ACCESS_KEY}&page=1&per_page=120`;
-				const response = await fetch(url);
+	const { loading, data } = useFetch(currentPage);
 
-				if (response.ok) {
-					const photos = await response.json();
-					await db.put("images", JSON.stringify(photos));
-					await db.put("photosStored", "true");
-				} else {
-					console.log("Failed to fetch photos");
-				}
-			}
-		};
 
-		storesPhotos();
-	}, []);
-
-	const { loading, data } = useFetch();
-
-	const lastPostIndex = currentPage * postsPerPage;
-	const firstPostIndex = lastPostIndex - postsPerPage;
-	const currentPosts = data.slice(firstPostIndex, lastPostIndex);
-
-	const [isFav, setIsFav] = useState<{ [key: string]: boolean }>({});
-
-	useEffect(() => {
-		const checkFavorites = async () => {
-			const favs: { [key: string]: boolean } = {};
-
-			for (const item of currentPosts) {
-				if (item.id) {
-					favs[item.id] = await isFavorite(authenticatedUser, item);
-				}
-			}
-
-			setIsFav(favs);
-		};
-
-		checkFavorites();
-	}, [authenticatedUser, currentPosts]);
+	const isFav = useFavorite({ authenticatedUser, data });
 
 	if (authenticatedUser === "") return null;
+
 	return (
 		<section className="flex flex-col gap-10">
 			<div className="w-full flex-between">
@@ -90,7 +49,7 @@ export default function list() {
 			</div>
 			<main className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8 max-w-screen-xl mx-auto">
 				{!loading &&
-					currentPosts.map((item, index) => {
+					data.map((item, index) => {
 						return (
 							<div key={index}>
 								<Image
@@ -125,8 +84,8 @@ export default function list() {
 					})}
 			</main>
 			<PaginationSection
-				totalPosts={data.length}
-				postsPerPage={postsPerPage}
+				totalPosts={30}
+				postsPerPage={postsPerPage.current}
 				currentPage={currentPage}
 				setCurrentPage={setCurrentPage}
 			/>
@@ -140,10 +99,10 @@ function PaginationSection({
 	currentPage,
 	setCurrentPage,
 }: {
-	totalPosts: any;
-	postsPerPage: any;
-	currentPage: any;
-	setCurrentPage: any;
+	totalPosts: number;
+	postsPerPage: number;
+	currentPage: number;
+	setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
 }) {
 	const pageNumbers = [];
 	for (let i = 1; i <= Math.ceil(totalPosts / postsPerPage); i++) {

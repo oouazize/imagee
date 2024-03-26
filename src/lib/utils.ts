@@ -29,31 +29,20 @@ export const authentication = async (username: string, password: string) => {
 
 export async function updateFavorite(user: string, photo: any) {
 	try {
-		// Get the current favorites from the database
 		let favorites = JSON.parse(await db.get(`${user}_favorites`));
 
-		// Check if the photo is already in the favorites
 		const index = favorites.findIndex(
 			(fav: { id: string }) => fav.id === photo.id
 		);
 
-		if (index !== -1) {
-			// If the photo is already in the favorites, remove it
-			favorites.splice(index, 1);
-		} else {
-			// If the photo is not in the favorites, add it
-			favorites.push(photo);
-		}
+		if (index !== -1) favorites.splice(index, 1);
+		else favorites.push(photo);
 
-		// Store the updated favorites in the database
 		await db.put(`${user}_favorites`, JSON.stringify(favorites));
 	} catch (error: any) {
-		// If the favorites are not in the database, create them
-		if (error.notFound) {
+		if (error.notFound)
 			await db.put(`${user}_favorites`, JSON.stringify([photo]));
-		} else {
-			console.log("Failed to update favorite", error);
-		}
+		else console.log("Failed to update favorite", error);
 	}
 }
 
